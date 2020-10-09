@@ -4,14 +4,17 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:SerialPort"
+        xmlns:i="http://schemas.microsoft.com/expression/2010/interactivity"
+        xmlns:si="http://schemas.microsoft.com/expression/2010/interactions"
         mc:Ignorable="d"
         Title="COM PORT SERIAL"
         Height="400"
-        Width="600">
+        Width="850">
     <Grid Margin="10">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="auto" />
-            <ColumnDefinition Width="1*" />
+            <ColumnDefinition Width="auto" />
+            <ColumnDefinition Width="auto" />
         </Grid.ColumnDefinitions>
 
         <Grid>
@@ -135,7 +138,7 @@
                                   >
                             <TextBlock VerticalAlignment="Center"
                                        HorizontalAlignment="Center"
-                                       Text="OFF"
+                                       Text="{Binding IsOpening, Converter={local:ONOFFConverter}}"
                                        FontWeight="Black"
                                        FontStyle="Normal"
                                        FontSize="32">
@@ -147,19 +150,32 @@
                     <ProgressBar Width="auto"
                                  Height="25"
                                  Margin="5 5 5 5" 
-                                 Grid.Row="1"/>
+                                 Grid.Row="1"
+                                 Minimum="0"
+                                 Maximum="100"
+                                 Value="{Binding IsOpening, Converter={local:ONOFFConverter}, ConverterParameter=Progressbar}"
+                                 
+                                 />
                 </Grid>
             </StackPanel>
         </Grid>
         <StackPanel Grid.Column="1">
             <GroupBox Header="Transmitter Control"
-                      Margin="5">
+                      Margin="5"
+                      IsEnabled="{Binding IsOpening}">
                 <StackPanel>
                     <TextBox Grid.Column="1"
+                             x:Name="ScreenTbx"
                              Width="auto"
                              Height="150"
+                             IsEnabled="{Binding IsOpening}"                             
                              Text="{Binding ScreenText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
-
+                        <i:Interaction.Triggers>
+                            <i:EventTrigger EventName="KeyDown">
+                                <si:CallMethodAction TargetObject="{Binding DataContext, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=TextBox}}"
+                                                     MethodName="TextBox_KeyDown" />
+                            </i:EventTrigger>
+                        </i:Interaction.Triggers>
                     </TextBox>
 
                     <GroupBox>
@@ -176,35 +192,98 @@
                                             Width="75"
                                             Height="25"
                                             Margin=" 0 0 0 5"
+                                            IsEnabled="{Binding ElementName=usingButtonChb, Path=IsChecked}"
                                             Command="{Binding SendDataCommand}" />
                                     <Button Content="Clear Screen"
                                             Width="75"
-                                            Height="25" />
+                                            Height="25" 
+                                            Command="{Binding ClearScreenCommand}"/>
                                 </StackPanel>
 
                                 <StackPanel Grid.Column="1"
                                             VerticalAlignment="Center">
                                     <CheckBox Content="Using Button"
-                                              IsChecked="False"
-                                              Margin="0 0 0 5" />
+                                              IsChecked="True"
+                                              Margin="0 0 0 5" 
+                                              x:Name="usingButtonChb"/>
                                     <CheckBox Content="Using Enter"
-                                              IsChecked="False" />
+                                              IsChecked="{Binding UsingEnterChb}" />
                                 </StackPanel>
 
                                 <StackPanel Grid.Column="2"
                                             VerticalAlignment="Center"
                                             Margin="5">
                                     <CheckBox Content="WriteLine"
-                                              IsChecked="False"
+                                              IsChecked="{Binding IsWrite, Converter={local:InverseBooleanConverter}}"
                                               Margin="0 0 0 5" />
                                     <CheckBox Content="Write"
-                                              IsChecked="False" />
+                                              IsChecked="{Binding IsWrite}" />
                                 </StackPanel>
                             </Grid>
 
                             <WrapPanel HorizontalAlignment="Center">
                                 <Label Content="Data out length:" />
-                                <Label Content="00" />
+                                <Label Content="{Binding ElementName=ScreenTbx, Path=Text.Length}" />
+                            </WrapPanel>
+
+                        </StackPanel>
+                    </GroupBox>
+                </StackPanel>
+            </GroupBox>
+        </StackPanel>
+        <StackPanel Grid.Column="2"
+                    Width="289">
+            <GroupBox Header="Receiver Control"
+                      Margin="5"
+                      IsEnabled="{Binding IsOpening}">
+                <StackPanel>
+                    <TextBox Grid.Column="1"
+                             x:Name="ScreenReceiveTbx"
+                             Width="auto"
+                             Height="150"
+                             IsEnabled="{Binding IsOpening}"
+                             Text="{Binding ScreenReceiveText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+                        <i:Interaction.Triggers>
+                            <i:EventTrigger EventName="KeyDown">
+                                <si:CallMethodAction TargetObject="{Binding DataContext, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=TextBox}}"
+                                                     MethodName="TextBox_KeyDown" />
+                            </i:EventTrigger>
+                        </i:Interaction.Triggers>
+                    </TextBox>
+
+                    <GroupBox>
+                        <StackPanel>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="auto" />
+                                    <ColumnDefinition Width="auto" />
+                                    <ColumnDefinition Width="auto" />
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel Margin="5">
+                                  
+                                    <Button Content="Clear Screen"
+                                            Width="100"
+                                            Height="55"
+                                            Command="{Binding ClearScreenReceiveCommand}" />
+                                </StackPanel>
+
+                                <StackPanel Grid.Column="1"
+                                            VerticalAlignment="Center">
+                                    <CheckBox Content="Always Update"
+                                              IsChecked="{Binding AlwaysUpdateChb}"
+                                              Margin="0 0 0 5"
+                                             />
+                                    <CheckBox Content="Add To Old Data"
+                                              IsChecked="{Binding AddToOldDataChb}" />
+                                </StackPanel>
+
+                                
+                            </Grid>
+
+                            <WrapPanel HorizontalAlignment="Center">
+                                <Label Content="Data out length:" />
+                                <Label Content="{Binding ElementName=ScreenReceiveTbx, Path=Text.Length}" />
                             </WrapPanel>
 
                         </StackPanel>

@@ -14,6 +14,7 @@ namespace SerialPort
     public class MainViewModel : BaseViewModel
     {
 
+
         private ObservableCollection<string> _serialPortSource;
 
         public ObservableCollection<string> SerialPortSource
@@ -121,14 +122,61 @@ namespace SerialPort
             set { _rstBoolean = value; OnPropertyChanged(); }
         }
 
+        private bool _isOpening;
+
+        public bool IsOpening
+        {
+            get { return _isOpening; }
+            set { _isOpening = value; OnPropertyChanged(); }
+        }
+
+        private bool _usingEnterChb;
+
+        public bool UsingEnterChb
+        {
+            get { return _usingEnterChb; }
+            set { _usingEnterChb = value; OnPropertyChanged(); }
+        }
+
+
+        private bool _isWrite;
+
+        public bool IsWrite
+        {
+            get { return _isWrite; }
+            set { _isWrite = value; OnPropertyChanged(); }
+        }
+
+        private string _screenReceiveText;
+
+        public string ScreenReceiveText
+        {
+            get { return _screenReceiveText; }
+            set { _screenReceiveText = value; OnPropertyChanged(); }
+        }
+
+        private bool _alwaysUpdate;
+
+        public bool AlwaysUpdateChb
+        {
+            get { return _alwaysUpdate; }
+            set { _alwaysUpdate = value; OnPropertyChanged(); }
+        }
+
+        private bool _addToOldDataChb;
+
+        public bool AddToOldDataChb
+        {
+            get { return _addToOldDataChb; }
+            set { _addToOldDataChb = value; OnPropertyChanged(); }
+        }
+
 
         public ICommand OpenSerialPortCommand { get; set; }
         public ICommand CloseSerialPortCommand { get; set; }
         public ICommand SendDataCommand { get; set; }
-
-
-        bool _continue;
-        System.IO.Ports.SerialPort _serialPort;
+        public ICommand ClearScreenCommand { get; set; }
+        public ICommand ClearScreenReceiveCommand { get; set; }
 
         public MainViewModel()
         {
@@ -138,22 +186,51 @@ namespace SerialPort
             StopBitsSource = new ObservableCollection<string>() { "None", "One", "Two", "OnePointFive" };
             ParityBitsSource = new ObservableCollection<string>() { "None", "Odd", "Even", "Mark", "Space" };
 
+            BaudRateItem = 9600;
+            DataBitsItem = 8;
+            StopBitsItem = "One";
+            ParityBitsItem = "None";
+            UsingEnterChb = true;
+            
             OpenSerialPortCommand = new RelayCommand(() =>
             {
                 OpenPort();
+                serialPort.DataReceived += SerialPort_DataReceived;
             });
             CloseSerialPortCommand = new RelayCommand(() =>
             {
                 if (serialPort != null && serialPort.IsOpen)
                 {
                     serialPort.Close();
+                    IsOpening = false;
                 }
             });
-            SendDataCommand = new RelayCommand(() => { SendData(); });
+            SendDataCommand = new RelayCommand(() => { SendData(); ScreenText = ""; });
+
+            ClearScreenCommand = new RelayCommand(() =>
+            {
+                if (ScreenText != string.Empty && ScreenText != "") ScreenText = "";
+            });
+            ClearScreenReceiveCommand = new RelayCommand(() =>
+            {
+                ScreenReceiveText = "";
+            });
+
+            
 
 
+        }
 
-
+        private void SerialPort_DataReceived(object sender, SerialDataReceivedEventArgs e)
+        {
+            if (AlwaysUpdateChb)
+            {
+                ScreenReceiveText = serialPort.ReadExisting();
+            }
+            else if(AddToOldDataChb)
+            {
+                ScreenReceiveText += serialPort.ReadExisting();
+            }
         }
 
         #region public methods
@@ -178,10 +255,12 @@ namespace SerialPort
                 serialPort.StopBits = (StopBits)Enum.Parse(typeof(StopBits), StopBitsItem);
                 serialPort.Parity = (Parity)Enum.Parse(typeof(Parity), ParityBitsItem);
                 serialPort.Open();
+                IsOpening = true;
             }
             catch (Exception err)
             {
                 MessageBox.Show(err.Message);
+                IsOpening = false;
             }
         }
 
@@ -189,12 +268,49 @@ namespace SerialPort
         {
             if (serialPort.IsOpen)
             {
-                serialPort.Write(ScreenText);
+                if (IsWrite)
+                {
+                    serialPort.Write(ScreenText);
+                }
+                else
+                {
+                    serialPort.WriteLine(ScreenText);
+                }
+            }
+        }
+
+
+        public void TextBox_KeyDown(object sender, KeyEventArgs key)
+        {
+            if (UsingEnterChb)
+            {
+                if(key.Key == Key.Enter)
+                {
+                    if (serialPort.IsOpen)
+                    {
+                        if (IsWrite)
+                        {
+                           
+                            //serialPort.Write(ScreenText);
+                            var b =  serialPort.Encoding.GetBytes(ScreenText);
+                            serialPort.Write(b, 0, b.Length);
+                        }
+                        else
+                        {
+                            serialPort.WriteLine(ScreenText);
+                        }
+
+                        //var temp = ScreenText.Replace(Environment.NewLine, "");
+                        //ScreenText = "";
+                        //ScreenText = temp;
+                        ScreenText = "";
+                    }
+                }
             }
         }
         #endregion
 
     }
-        
+
 
 }
